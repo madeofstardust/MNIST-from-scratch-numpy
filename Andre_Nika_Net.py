@@ -15,14 +15,26 @@ from keras.datasets import mnist
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
 shape_x = x_train.shape
 shape_y = y_train.shape
+shape_x_test = x_test.shape
+shape_y_test = y_test.shape
+
 print("Shape of x: {}, Shape of y: {}".format(shape_x, shape_y))
+print("Shape of x: {}, Shape of y: {}".format(shape_x_test, shape_y_test))
 
 
 # In[6]:
 
 
+x_test_new = []
+for i in range (100):
+    x_test_new.append(x_test[i].reshape(784))
+
+x_test = np.asarray(x_test_new)
+
+#%%
+
 x_new = []
-for i in range (60000):
+for i in range (32000):
     x_new.append(x_train[i].reshape(784))
 
 x_train = np.asarray(x_new)
@@ -41,17 +53,32 @@ def one_hot_encoder(label):
 
 
 y_train_one_hot = np.array([one_hot_encoder(label) for label in y_train])
-print(y_train, y_train.shape)
-print(y_train_one_hot.shape)
+print("y_train {}, y_train.shape {}".format(y_train, y_train.shape))
+print("y_train_one_hot.shape: {}".format(y_train_one_hot.shape))
+
+#%%
+
+y_test_one_hot = np.array([one_hot_encoder(label) for label in y_test])
+print("y_test: {}. y_test.shape: {}".format(y_test, y_test.shape))
+print("y_test_one_hot.shape: {}".format(y_test_one_hot.shape))
+
+
 
 
 # In[9]:
 
 
 x_train = np.array(x_new)
-print(x_train.shape)
+print("x_train.shape {} ".format(x_train.shape))
 x_train = x_train/255.0
-print(x_train.shape)
+
+
+
+#%%
+
+x_test = np.array(x_test_new)
+print("x_test.shape {} ".format(x_test.shape))
+x_test = x_test/255.0
 
 
 # In[10]:
@@ -62,7 +89,7 @@ hidden_dim = 64
 output_dim = 10
 learning_rate = 0.1
 batch_size = 16
-n_epochs = 10
+n_epochs = 1
 
 
 # In[11]:
@@ -175,6 +202,7 @@ def train(x, y, batch_size = batch_size, epochs = n_epochs):
     i_epoch = 0
     best_W1 = net.W1
     best_W2 = net.W2
+    no_batch = 0
     for i in range (n_epochs):
         for j in range(len(x)):
             dW1, dW2, error = Backprop(net, x[i],y[i])
@@ -184,18 +212,19 @@ def train(x, y, batch_size = batch_size, epochs = n_epochs):
             g_dW2 += dW2
             g_error += error
     
-            if (i+1) % batch_size == 0:
+            if (j+1) % batch_size == 0:
+                no_batch +=1
                 g_dW1 = g_dW1/batch_size
                 g_dW2 = g_dW2/batch_size
                 g_error = g_error/batch_size
                 if g_error < min_error:
                     min_error = g_error
-                    i_of_min_er = j+1/batch_size
+                    i_of_min_er = no_batch 
                     i_epoch = i
                     best_W1 = net.W1
                     best_W2 = net.W2
                 net.weight_update(g_dW1, g_dW2)
-                print(i)
+                print("Batch no:", no_batch)
                 print(g_error)
                 #zeroing:
                 batch_samples = 0
@@ -203,17 +232,40 @@ def train(x, y, batch_size = batch_size, epochs = n_epochs):
                 g_dW2 = np.zeros((output_dim, hidden_dim))
                 g_error = 0
             
-                print("Min error from batch {} : {}".format(i+1, min_error))
+                print("Min error from batch {} : {}".format(no_batch, min_error))
     print("Minimal error: {}, happened in epoch no. {}, batch num: {}".format(min_error, i_epoch, i_of_min_er))
     
     np.savetxt("best_W1.txt", best_W1, fmt="%s")
     np.savetxt("best_W2.txt", best_W2, fmt="%s")
-    np.savetxt("min_error.txt", min_error, fmt="%s")
-    np.savetxt("min_error_epoch.txt", i_epoch, fmt="%s")
-    np.savetxt("min_error_batch.txt", i_of_min_er, fmt="%s")
+    #np.savetxt("min_error.txt", min_error.toarray(), fmt="%s")
+    #np.savetxt("min_error_epoch.txt", i_epoch.toarray(), fmt="%s")
+    #np.savetxt("min_error_batch.txt", i_of_min_er.toarray(), fmt="%s")
+    return min_error, net
 
 # In[42]:
 
-train(x_train, y_train_one_hot, batch_size)
+min_error, our_net = train(x_train, y_train_one_hot, batch_size)
 
 # In[101]:
+
+# test:
+    
+def Test(x, y, net):
+    print(y.shape)
+    guessed = 0
+    for i in range (0, x.shape[0]):
+        _, _, _, output = net.forward(x[i])
+        guessed_result = np.where(output == np.amax(output))
+        correct_result = np.where(y[i] == np.amax(y[i]))
+        if guessed_result == correct_result:
+            guessed +=1
+    accuracy = guessed/x.shape[0]
+    print (accuracy)
+    return accuracy
+        
+        
+    
+#%%
+ytest = y_test_one_hot[:100 :]
+  
+test = Test(x_test, ytest, our_net) 
