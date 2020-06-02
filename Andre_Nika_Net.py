@@ -250,7 +250,7 @@ min_error, our_net = train(x_train, y_train_one_hot, batch_size)
 
 # test:
     
-def Test(x, y, net):
+def test(x, y, net):
     print(y.shape)
     guessed = 0
     for i in range (0, x.shape[0]):
@@ -268,4 +268,4 @@ def Test(x, y, net):
 #%%
 ytest = y_test_one_hot[:100 :]
   
-test = Test(x_test, ytest, our_net) 
+test_run = test(x_test, ytest, our_net) 
